@@ -54,6 +54,18 @@ jobs:
     environment: production
 
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "docker-compose.yml,docker-compose.prod.yml"
+          target: /opt/stock-downloader
+          strip_components: 0
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -63,20 +75,38 @@ jobs:
           script: |
             cd /opt/stock-downloader
 
-            # 環境変数ファイルの確認
+            # ディレクトリがなければ作成
+            mkdir -p /opt/stock-downloader
+
+            # 環境変数ファイルがなければテンプレート作成
             if [ ! -f .env ]; then
-              echo "Error: .env file not found"
-              exit 1
+              cat << 'ENVEOF' > .env
+            POSTGRES_HOST=db
+            POSTGRES_PORT=5432
+            POSTGRES_DB=stocks
+            POSTGRES_USER=stockuser
+            POSTGRES_PASSWORD=changeme_$(openssl rand -hex 8)
+            LOG_LEVEL=INFO
+            DOWNLOAD_BATCH_SIZE=50
+            ENVEOF
+              echo "Created .env file - please update POSTGRES_PASSWORD"
+            fi
+
+            # 本番用composeファイルがあれば使用
+            if [ -f docker-compose.prod.yml ]; then
+              COMPOSE_FILE="docker-compose.yml:docker-compose.prod.yml"
+            else
+              COMPOSE_FILE="docker-compose.yml"
             fi
 
             # 最新イメージをプル
-            docker compose pull
+            COMPOSE_FILE=$COMPOSE_FILE docker compose pull
 
             # マイグレーション実行
-            docker compose --profile migration run --rm migration
+            COMPOSE_FILE=$COMPOSE_FILE docker compose --profile migration run --rm migration
 
             # サービス再起動
-            docker compose up -d --remove-orphans
+            COMPOSE_FILE=$COMPOSE_FILE docker compose up -d --remove-orphans
 
             # 古いイメージの削除
             docker image prune -f

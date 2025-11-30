@@ -4,9 +4,9 @@
 
 ## 機能
 
-- 過去1年分の日本株株価データを自動ダウンロード
+- JPXから全上場銘柄（約4,000銘柄）を自動取得
+- 毎日18:00に当日の株価データを自動更新
 - PostgreSQLへのデータ保存（upsert対応）
-- 毎日18:00に自動更新
 - Docker Composeによる簡単デプロイ
 
 ## 必要要件
@@ -26,15 +26,36 @@ docker compose up -d db
 # マイグレーション実行
 docker compose --profile migration run --rm migration
 
-# アプリケーション起動
+# アプリケーション起動（日次更新モード）
 docker compose up -d app
 ```
 
-## 一度だけダウンロード実行
+## 過去データの一括取得（初回のみ）
+
+初回セットアップ時に過去1年分のデータを取得する場合:
+
+```bash
+docker compose --profile backfill run --rm backfill
+```
+
+## 今日の株価を手動で取得
 
 ```bash
 docker compose run --rm app python scripts/download_once.py
 ```
+
+## 環境変数
+
+| 変数 | デフォルト | 説明 |
+|------|-----------|------|
+| POSTGRES_HOST | db | PostgreSQLホスト |
+| POSTGRES_PORT | 5432 | PostgreSQLポート |
+| POSTGRES_DB | stocks | データベース名 |
+| POSTGRES_USER | stockuser | ユーザー名 |
+| POSTGRES_PASSWORD | stockpass | パスワード |
+| LOG_LEVEL | INFO | ログレベル |
+| DOWNLOAD_BATCH_SIZE | 50 | バッチサイズ |
+| RUN_ON_STARTUP | false | 起動時に即実行するか |
 
 ## VPSへのデプロイ
 
@@ -70,7 +91,7 @@ cd /opt/stock-downloader
 | id | INT | 主キー |
 | code | VARCHAR(10) | 銘柄コード |
 | name | VARCHAR(255) | 銘柄名 |
-| market | VARCHAR(50) | 市場 |
+| market | VARCHAR(50) | 市場区分 |
 | sector | VARCHAR(100) | 業種 |
 
 ### stock_prices（株価データ）
@@ -86,18 +107,6 @@ cd /opt/stock-downloader
 | close | FLOAT | 終値 |
 | volume | BIGINT | 出来高 |
 | adjusted_close | FLOAT | 調整後終値 |
-
-## 銘柄の追加
-
-`src/stock_list.py`の`MAJOR_JAPANESE_STOCKS`リストに銘柄を追加:
-
-```python
-MAJOR_JAPANESE_STOCKS = [
-    ("7203", "トヨタ自動車"),
-    ("新しいコード", "銘柄名"),
-    ...
-]
-```
 
 ## ライセンス
 

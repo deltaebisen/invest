@@ -1,0 +1,13 @@
+# 本番環境用オーバーライド
+# GitHub Container Registryのビルド済みイメージを使用
+services:
+  app:
+    build: !reset null
+    image: ghcr.io/deltaebisen/invest:latest
+    volumes:
+      - ./logs:/app/logs
+      - app_data:/app/data
+
+  migration:
+    build: !reset null
+    image: ghcr.io/deltaebisen/invest:latest

@@ -5,7 +5,7 @@
 ## 機能
 
 - JPXから全上場銘柄（約4,000銘柄）を自動取得
-- 毎日18:00に当日の株価データを自動更新
+- GitHub Actionsで毎日16:30 JSTに自動実行
 - PostgreSQLへのデータ保存（upsert対応）
 - Docker Composeによる簡単デプロイ
 
@@ -26,8 +26,8 @@ docker compose up -d db
 # マイグレーション実行
 docker compose --profile migration run --rm migration
 
-# アプリケーション起動（日次更新モード）
-docker compose up -d app
+# 日次ダウンロード実行
+docker compose run --rm app
 ```
 
 ## 過去データの一括取得（初回のみ）
@@ -36,12 +36,6 @@ docker compose up -d app
 
 ```bash
 docker compose --profile backfill run --rm backfill
-```
-
-## 今日の株価を手動で取得
-
-```bash
-docker compose run --rm app python scripts/download_once.py
 ```
 
 ## 環境変数
@@ -55,32 +49,24 @@ docker compose run --rm app python scripts/download_once.py
 | POSTGRES_PASSWORD | stockpass | パスワード |
 | LOG_LEVEL | INFO | ログレベル |
 | DOWNLOAD_BATCH_SIZE | 50 | バッチサイズ |
-| RUN_ON_STARTUP | false | 起動時に即実行するか |
 
 ## VPSへのデプロイ
 
-### 1. VPSの準備
+### 1. GitHub Secretsの設定
 
-```bash
-# VPSにディレクトリ作成
-mkdir -p /opt/stock-downloader
-cd /opt/stock-downloader
-
-# docker-compose.ymlと.envをコピー
-# .envファイルを編集して本番用の値を設定
-```
-
-### 2. GitHub Secretsの設定
-
-以下のSecretsをGitHubリポジトリに設定:
+以下のSecretsをGitHubリポジトリのEnvironment `production` に設定:
 
 - `VPS_HOST`: VPSのホスト名/IP
 - `VPS_USER`: SSHユーザー名
 - `VPS_SSH_KEY`: SSH秘密鍵
 
-### 3. デプロイ
+### 2. デプロイ
 
 `main`ブランチにpushすると自動でデプロイされます。
+
+### 3. 日次実行
+
+GitHub Actionsが毎日16:30 JSTに自動で株価データをダウンロードします。
 
 ## データベーススキーマ
 

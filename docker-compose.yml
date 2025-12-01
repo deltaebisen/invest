@@ -33,11 +33,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stockpass}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       DOWNLOAD_BATCH_SIZE: ${DOWNLOAD_BATCH_SIZE:-50}
-      RUN_ON_STARTUP: ${RUN_ON_STARTUP:-false}
     volumes:
-      - ./logs:/app/logs
       - app_data:/app/data
-    restart: unless-stopped
 
   # 初回の過去データ一括取得用（1年分）
   backfill:
@@ -57,7 +54,6 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       DOWNLOAD_BATCH_SIZE: ${DOWNLOAD_BATCH_SIZE:-50}
     volumes:
-      - ./logs:/app/logs
       - app_data:/app/data
     command: ["python", "scripts/backfill.py"]
     profiles:

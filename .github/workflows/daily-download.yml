@@ -1,0 +1,40 @@
+name: Daily Stock Download
+
+on:
+  schedule:
+    # 毎日16:30 JST (07:30 UTC)に実行
+    - cron: '30 7 * * *'
+  workflow_dispatch:  # 手動実行も可能
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Run daily download on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/stock-downloader
+
+            # 本番用composeファイルで実行
+            if [ -f docker-compose.prod.yml ]; then
+              COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+            else
+              COMPOSE_CMD="docker compose"
+            fi
+
+            # DBが起動していなければ起動
+            $COMPOSE_CMD up -d db
+            sleep 10
+
+            # 日次ダウンロード実行
+            $COMPOSE_CMD run --rm app python scripts/download_once.py

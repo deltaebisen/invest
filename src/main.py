@@ -1,12 +1,8 @@
 """メインエントリーポイント"""
 
 import logging
-import os
 import sys
-import time
 from datetime import datetime
-
-import schedule
 
 from src.config import config
 from src.database import SessionLocal
@@ -19,7 +15,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("/app/logs/stock_downloader.log", mode="a"),
     ],
 )
 logger = logging.getLogger(__name__)
@@ -44,27 +39,16 @@ def daily_download_job():
 
     except Exception as e:
         logger.error(f"Error in daily download job: {e}", exc_info=True)
+        raise
     finally:
         db.close()
 
 
 def main():
-    """メイン関数"""
-    logger.info("Stock Downloader started (daily update mode)")
-
-    # 起動時に即座に実行するかどうか（環境変数で制御）
-    if os.getenv("RUN_ON_STARTUP", "false").lower() == "true":
-        logger.info("Running initial download on startup")
-        daily_download_job()
-
-    # 毎日18:00に実行（東証終了後）
-    schedule.every().day.at("18:00").do(daily_download_job)
-
-    logger.info("Scheduler started. Running daily at 18:00 JST")
-
-    while True:
-        schedule.run_pending()
-        time.sleep(60)
+    """メイン関数 - 日次ダウンロードを1回実行"""
+    logger.info("Stock Downloader started")
+    daily_download_job()
+    logger.info("Stock Downloader finished")
 
 
 if __name__ == "__main__":

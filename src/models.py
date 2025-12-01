@@ -36,6 +36,13 @@ class StockPrice(Base):
     close: Mapped[float | None] = mapped_column(Float)
     volume: Mapped[int | None] = mapped_column(BigInteger)
     adjusted_close: Mapped[float | None] = mapped_column(Float)
+    # テクニカル指標
+    ma5: Mapped[float | None] = mapped_column(Float)
+    ma20: Mapped[float | None] = mapped_column(Float)
+    rsi9: Mapped[float | None] = mapped_column(Float)
+    bb_upper: Mapped[float | None] = mapped_column(Float)
+    bb_middle: Mapped[float | None] = mapped_column(Float)
+    bb_lower: Mapped[float | None] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (

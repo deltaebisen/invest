@@ -50,6 +50,13 @@ class StockPriceResponse(BaseModel):
     close: float | None
     volume: int | None
     adjusted_close: float | None
+    # テクニカル指標
+    ma5: float | None
+    ma20: float | None
+    rsi9: float | None
+    bb_upper: float | None
+    bb_middle: float | None
+    bb_lower: float | None
 
     class Config:
         from_attributes = True

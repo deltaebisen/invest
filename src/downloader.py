@@ -6,9 +6,11 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import yfinance as yf
+from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from src.indicators import calculate_all_indicators
 from src.models import Stock, StockPrice
 from src.stock_list import StockInfo, get_yahoo_ticker
 
@@ -207,3 +209,85 @@ class StockDownloader:
 
         self.db.commit()
         return saved_count
+
+    def update_indicators_for_stock(self, code: str, limit_days: int = 30) -> int:
+        """銘柄のテクニカル指標を更新する
+
+        Args:
+            code: 銘柄コード
+            limit_days: 更新対象の日数（デフォルト30日分）
+
+        Returns:
+            更新したレコード数
+        """
+        # 指標計算に必要な過去データを取得（MA20, RSI9用に余裕を持って取得）
+        prices = (
+            self.db.query(StockPrice)
+            .filter(StockPrice.code == code)
+            .order_by(StockPrice.trade_date.asc())
+            .all()
+        )
+
+        if len(prices) < 20:
+            return 0
+
+        # DataFrameに変換
+        df = pd.DataFrame(
+            [
+                {
+                    "trade_date": p.trade_date,
+                    "close": p.close,
+                }
+                for p in prices
+            ]
+        )
+        df = df.set_index("trade_date")
+
+        # テクニカル指標を計算
+        df = calculate_all_indicators(df)
+
+        # 直近limit_days分のデータを更新
+        updated_count = 0
+        recent_prices = prices[-limit_days:] if limit_days else prices
+
+        for price in recent_prices:
+            if price.trade_date not in df.index:
+                continue
+
+            row = df.loc[price.trade_date]
+
+            # 指標がNaNでない場合のみ更新
+            stmt = (
+                update(StockPrice)
+                .where(StockPrice.id == price.id)
+                .values(
+                    ma5=self._to_float(row.get("ma5")),
+                    ma20=self._to_float(row.get("ma20")),
+                    rsi9=self._to_float(row.get("rsi9")),
+                    bb_upper=self._to_float(row.get("bb_upper")),
+                    bb_middle=self._to_float(row.get("bb_middle")),
+                    bb_lower=self._to_float(row.get("bb_lower")),
+                )
+            )
+            self.db.execute(stmt)
+            updated_count += 1
+
+        self.db.commit()
+        return updated_count
+
+    def update_all_indicators(self, stock_codes: list[str], limit_days: int = 30) -> int:
+        """複数銘柄のテクニカル指標を更新する
+
+        Args:
+            stock_codes: 銘柄コードリスト
+            limit_days: 更新対象の日数
+
+        Returns:
+            更新したレコード数
+        """
+        total_updated = 0
+        for i, code in enumerate(stock_codes):
+            if i > 0 and i % 100 == 0:
+                logger.info(f"Updating indicators: {i}/{len(stock_codes)}")
+            total_updated += self.update_indicators_for_stock(code, limit_days)
+        return total_updated

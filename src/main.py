@@ -37,6 +37,12 @@ def daily_download_job():
         elapsed = datetime.now() - start_time
         logger.info(f"Daily download completed: {saved_count} records saved in {elapsed}")
 
+        # テクニカル指標を更新（直近5日分のみ）
+        logger.info("Updating technical indicators")
+        stock_codes = [s.code for s in stock_list]
+        updated_count = downloader.update_all_indicators(stock_codes, limit_days=5)
+        logger.info(f"Technical indicators updated: {updated_count} records")
+
     except Exception as e:
         logger.error(f"Error in daily download job: {e}", exc_info=True)
         raise

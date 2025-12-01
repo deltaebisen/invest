@@ -8,6 +8,7 @@
 - GitHub Actionsで毎日16:30 JSTに自動実行
 - PostgreSQLへのデータ保存（upsert対応）
 - Docker Composeによる簡単デプロイ
+- REST APIによる株価データ提供
 
 ## 必要要件
 
@@ -97,3 +98,43 @@ GitHub Actionsが毎日16:30 JSTに自動で株価データをダウンロード
 ## ライセンス
 
 MIT
+
+## API
+
+APIサーバーはポート8000で起動します。
+
+### エンドポイント
+
+| メソッド | パス | 説明 |
+|---------|------|------|
+| GET | /health | ヘルスチェック |
+| GET | /stocks | 銘柄一覧取得 |
+| GET | /stocks/{code} | 銘柄詳細取得 |
+| GET | /stocks/{code}/prices | 銘柄の株価履歴取得 |
+| GET | /prices/latest | 最新の株価取得 |
+| GET | /markets | 市場区分一覧取得 |
+| GET | /sectors | 業種一覧取得 |
+
+### 使用例
+
+```bash
+# APIサーバー起動
+docker compose up -d api
+
+# 銘柄一覧取得
+curl http://localhost:8000/stocks?limit=10
+
+# 銘柄の株価取得
+curl http://localhost:8000/stocks/7203/prices?start_date=2024-01-01
+
+# 最新株価取得
+curl http://localhost:8000/prices/latest?codes=7203,9984
+```
+
+### Vercelからの接続
+
+環境変数 `CORS_ALLOWED_ORIGINS` にVercelのドメインを設定してください。
+
+```bash
+CORS_ALLOWED_ORIGINS=https://your-app.vercel.app
+```

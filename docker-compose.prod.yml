@@ -11,3 +11,7 @@ services:
   migration:
     build: !reset null
     image: ghcr.io/deltaebisen/invest:latest
+
+  api:
+    build: !reset null
+    image: ghcr.io/deltaebisen/invest:latest

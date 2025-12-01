@@ -96,4 +96,4 @@ GitHub Actionsが毎日16:30 JSTに自動で株価データをダウンロード
 
 ## ライセンス
 
-MIT
+UNLICENSED

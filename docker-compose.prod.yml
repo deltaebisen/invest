@@ -15,3 +15,11 @@ services:
   api:
     build: !reset null
     image: ghcr.io/deltaebisen/invest:latest
+
+  backfill:
+    build: !reset null
+    image: ghcr.io/deltaebisen/invest:latest
+
+  backfill-indicators:
+    build: !reset null
+    image: ghcr.io/deltaebisen/invest:latest

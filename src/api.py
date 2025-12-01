@@ -1,6 +1,5 @@
 """Stock API Server"""
 
-import os
 from datetime import date
 
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -18,16 +17,12 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS設定（Vercelからのアクセスを許可）
-allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
-if allowed_origins == [""]:
-    allowed_origins = ["*"]
-
+# CORS設定（開発時は全許可）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 

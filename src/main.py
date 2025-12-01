@@ -2,10 +2,7 @@
 
 import logging
 import sys
-import time
 from datetime import datetime
-
-import schedule
 
 from src.config import config
 from src.database import SessionLocal
@@ -18,50 +15,40 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("/app/logs/stock_downloader.log", mode="a"),
     ],
 )
 logger = logging.getLogger(__name__)
 
 
-def download_job():
-    """株価ダウンロードジョブ"""
-    logger.info("Starting stock price download job")
+def daily_download_job():
+    """日次株価ダウンロードジョブ（当日分のみ）"""
+    logger.info("Starting daily stock price download job")
     start_time = datetime.now()
 
+    db = SessionLocal()
     try:
-        db = SessionLocal()
         downloader = StockDownloader(db, batch_size=config.download_batch_size)
 
         stock_list = get_stock_list()
-        logger.info(f"Downloading prices for {len(stock_list)} stocks")
+        logger.info(f"Downloading daily prices for {len(stock_list)} stocks")
 
-        saved_count = downloader.download_stock_prices(stock_list)
+        saved_count = downloader.download_daily_prices(stock_list)
 
         elapsed = datetime.now() - start_time
-        logger.info(f"Download completed: {saved_count} records saved in {elapsed}")
+        logger.info(f"Daily download completed: {saved_count} records saved in {elapsed}")
 
     except Exception as e:
-        logger.error(f"Error in download job: {e}", exc_info=True)
+        logger.error(f"Error in daily download job: {e}", exc_info=True)
+        raise
     finally:
         db.close()
 
 
 def main():
-    """メイン関数"""
+    """メイン関数 - 日次ダウンロードを1回実行"""
     logger.info("Stock Downloader started")
-
-    # 初回実行
-    download_job()
-
-    # 毎日18:00に実行（東証終了後）
-    schedule.every().day.at("18:00").do(download_job)
-
-    logger.info("Scheduler started. Running daily at 18:00 JST")
-
-    while True:
-        schedule.run_pending()
-        time.sleep(60)
+    daily_download_job()
+    logger.info("Stock Downloader finished")
 
 
 if __name__ == "__main__":

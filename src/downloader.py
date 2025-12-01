@@ -23,6 +23,23 @@ class StockDownloader:
         self.db = db
         self.batch_size = batch_size
 
+    def download_daily_prices(self, stock_list: list[StockInfo]) -> int:
+        """
+        本日分の株価データをダウンロードしてDBに保存する（日次更新用）
+
+        Args:
+            stock_list: 銘柄リスト
+
+        Returns:
+            保存したレコード数
+        """
+        # 今日と明日の日付（yfinanceは終了日を含まないため+1日）
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrow = today + timedelta(days=1)
+
+        logger.info(f"Downloading daily prices for {today.strftime('%Y-%m-%d')}")
+        return self.download_stock_prices(stock_list, start_date=today, end_date=tomorrow)
+
     def download_stock_prices(
         self,
         stock_list: list[StockInfo],
@@ -34,16 +51,16 @@ class StockDownloader:
 
         Args:
             stock_list: 銘柄リスト
-            start_date: 開始日（デフォルト: 1年前）
-            end_date: 終了日（デフォルト: 今日）
+            start_date: 開始日（デフォルト: 3日前 - 休日対応）
+            end_date: 終了日（デフォルト: 明日）
 
         Returns:
             保存したレコード数
         """
         if start_date is None:
-            start_date = datetime.now() - timedelta(days=365)
+            start_date = datetime.now() - timedelta(days=3)
         if end_date is None:
-            end_date = datetime.now()
+            end_date = datetime.now() + timedelta(days=1)
 
         total_saved = 0
 
